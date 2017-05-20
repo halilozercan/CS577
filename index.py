@@ -38,7 +38,17 @@ def index(filename, mer_size, key="DEMO_KEY"):
             kmer = data[i - mer_size:i]
             hash = bytearray(hashlib.sha1(kmer).digest())
             keyed_hash = bytearray([a ^ b for (a, b) in zip(hash, key)])
-            kmerhash_position_map[str(keyed_hash)].append((seq_index, i - mer_size))
+            kmerhash_position_map[str(keyed_hash)].append((seq_index, 0, i - mer_size))  # 0 for not reverse
+
+        data = str(sequence.reverse_complement().seq)
+        print 'Reading', name, 'in reverse'
+        for i in range(mer_size, len(data)):
+            if i % 1000000 == 0 or i == (len(data) - 1):
+                print "Hashed", i, "kmers"
+            kmer = data[i - mer_size:i]
+            hash = bytearray(hashlib.sha1(kmer).digest())
+            keyed_hash = bytearray([a ^ b for (a, b) in zip(hash, key)])
+            kmerhash_position_map[str(keyed_hash)].append((seq_index, 1, i - mer_size))  # 1 for reverse
 
     # hashes = heap_sort(hashes)
     unique_indexed_hashes = []
@@ -46,9 +56,10 @@ def index(filename, mer_size, key="DEMO_KEY"):
 
     for keyed_hash, positions in kmerhash_position_map.iteritems():
         unique = len(positions) == 1
-        info_to_hide = bytearray(('%0.2X%0.2X%0.8X' % (unique, positions[0][0], positions[0][1])).decode('hex'))
+        info_to_hide = bytearray(('%0.2X%0.2X%0.2X%0.6X' %
+                                  (unique, positions[0][0], positions[0][1], positions[0][2])).decode('hex'))
 
-        new_hash = copy.copy(bytearray(keyed_hash))
+        new_hash = keyed_hash
         for j in range(len(info_to_hide)):
             new_hash[j + 10] ^= info_to_hide[j]
 

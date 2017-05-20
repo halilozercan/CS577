@@ -4,6 +4,7 @@ import sys
 
 import editdistance
 from Bio import SeqIO
+from Bio.Seq import MutableSeq
 
 from cipher import AesCtrCipher
 
@@ -77,7 +78,8 @@ with open(client_results, 'rb') as f:
             reference_position = sxor(seed_second_part[:6], ref_kmer[10:]).tostring().encode('hex')
             unique = int(reference_position[0:2], 16)
             chromosome_index = int(reference_position[2:4], 16)
-            in_chromosome_position = int(reference_position[4:], 16)
+            is_reverse = int(reference_position[4:6], 16)
+            in_chromosome_position = int(reference_position[6:], 16)
 
             read_number = int(seed_second_part[6:9].encode('hex'), 16)
             in_read_position = int(seed_second_part[9].encode('hex'), 16)
@@ -89,7 +91,13 @@ with open(client_results, 'rb') as f:
             start = in_chromosome_position - in_read_position
             end = start + len(corresponding_read)
 
-            aligned_str = reference[chromosome_index][start:end]
+            if is_reverse:
+                aligned_str = reference[chromosome_index][::-1][start:end]
+                mut_seq = MutableSeq(aligned_str)
+                mut_seq.complement()
+                aligned_str = str(mut_seq)
+            else:
+                aligned_str = reference[chromosome_index][start:end]
 
             distance = editdistance.eval(corresponding_read, aligned_str)
             if distance <= max_edit_threshold and alignment_results[read_number]['score'] > distance:
