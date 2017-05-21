@@ -38,8 +38,8 @@ elif '.fa' in reads_file or '.fasta' in reads_file:
 reads = []
 read_headers = []
 for i, sequence in enumerate(read_sequences):
-    if i > 1000000: break
-    reads.append(str(sequence.seq))
+    if i > 100000: break
+    reads.append(sequence)
     read_headers.append(sequence.id)
 
 reference_chromosomes = SeqIO.parse(open(reference_file), 'fasta')
@@ -50,7 +50,7 @@ for sequence in reference_chromosomes:
 seeds = []
 with open(seeds_file, 'rb') as f:
     while True:
-        i = f.read(36)
+        i = f.read(37)
         if i:
             seeds.append(i)
         else:
@@ -64,7 +64,7 @@ total = 0
 
 with open(client_results, 'rb') as f:
     while True:
-        seed = f.read(36)
+        seed = f.read(37)
         if seed is None:
             break
         ref_kmer = f.read(16)
@@ -81,10 +81,14 @@ with open(client_results, 'rb') as f:
 
             read_number = int(seed_second_part[6:9].encode('hex'), 16)
             in_read_position = int(seed_second_part[9].encode('hex'), 16)
+            is_reverse = int(seed_second_part[10].encode('hex'), 16)
 
             # print seed_second_part, unique, chromosome_index, in_chromosome_position, read_number, in_read_position
 
-            corresponding_read = reads[read_number]
+            if is_reverse:
+                corresponding_read = str(reads[read_number].reverse_complement().seq)
+            else:
+                corresponding_read = str(reads[read_number].seq)
 
             start = in_chromosome_position - in_read_position
             end = start + len(corresponding_read)
@@ -119,7 +123,7 @@ with open(output, 'w') as g:
     naligned = 0
     for i, result in enumerate(alignment_results):
         g.write(read_headers[i] + '\n')
-        g.write(reads[i] + '\n')
+        g.write(str(reads[i].seq) + '\n')
         if result['score'] != 1000:
             aligned += 1
             g.write(reference[result['chr']][result['location']:result['location'] + len(reads[i])] + '\n')

@@ -14,7 +14,7 @@ reference_kmers.sort()
 seeds = []
 with open(sys.argv[2], 'rb') as f:
     while True:
-        i = f.read(36)
+        i = f.read(37)
         if i:
             seeds.append(i)
         else:
