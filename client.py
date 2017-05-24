@@ -59,7 +59,7 @@ def sequential_search(iterable, query, same_len=False):
 with open(sys.argv[3], 'w') as f:
     found = 0
     for i, seed in enumerate(seeds):
-        if i % 100000 == 0:
+        if i % 1000000 == 0:
             print i, 'matching', found
         index = binary_search(reference_kmers, seed[:10], 0, len(reference_kmers), same_len=True)
         #index = sequential_search(reference_kmers, seed[:10], same_len=True)

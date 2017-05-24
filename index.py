@@ -59,7 +59,7 @@ def index(filename, mer_size, key="DEMO_KEY"):
         info_to_hide = bytearray(('%0.2X%0.2X%0.2X%0.6X' %
                                   (unique, positions[0][0], positions[0][1], positions[0][2])).decode('hex'))
 
-        new_hash = keyed_hash
+        new_hash = bytearray(keyed_hash)
         for j in range(len(info_to_hide)):
             new_hash[j + 10] ^= info_to_hide[j]
 

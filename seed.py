@@ -21,7 +21,7 @@ def seed_read(read, mer_size, key):
     return hashes, seed_end_positions
 
 
-def seed(filename, mer_size, hash_key='DEMO_KEY', read_key='DEMO_KEY'):
+def seed(filename, mer_size, read_count, hash_key='DEMO_KEY', read_key='DEMO_KEY'):
     key = bytearray(hashlib.sha1(hash_key).digest())
     cipher = AesCtrCipher(read_key)
     if '.fq' in  filename or '.fastq' in filename:
@@ -29,10 +29,10 @@ def seed(filename, mer_size, hash_key='DEMO_KEY', read_key='DEMO_KEY'):
     elif '.fa' in  filename or '.fasta' in filename:
         file_sequences = SeqIO.parse(open(filename), 'fasta')
     read_hashes = []
-    count = 0
     for i, sequence in enumerate(file_sequences):
-        if i > 1000000: break
-        if i % 10000 == 0:
+        if i > read_count:
+            break
+        if i % 100000 == 0:
             print i, "reads indexed as seeds"
         seeds, seed_end_positions = seed_read(str(sequence.seq), mer_size, key)
         for seed, seed_end_position in zip(seeds, seed_end_positions):
@@ -55,4 +55,4 @@ def seed(filename, mer_size, hash_key='DEMO_KEY', read_key='DEMO_KEY'):
 
 
 if __name__ == "__main__":
-    seed(sys.argv[1], int(sys.argv[2]))
+    seed(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))

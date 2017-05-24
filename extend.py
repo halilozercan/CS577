@@ -4,7 +4,6 @@ import sys
 
 import editdistance
 from Bio import SeqIO
-from Bio.Seq import MutableSeq
 
 from cipher import AesCtrCipher
 
@@ -22,7 +21,8 @@ reads_file = sys.argv[1]
 client_results = sys.argv[2]
 reference_file = sys.argv[3]
 kmer_size = int(sys.argv[4])
-max_edit_threshold = int(sys.argv[5])
+read_count = int(sys.argv[5])
+max_edit_threshold = int(sys.argv[6])
 
 kmerhash_position_map = pickle.load(open(reference_file + '.' + str(kmer_size) + '.rih', 'rb'))
 seeds_file = reads_file + '.' + str(kmer_size) + '.seeds'
@@ -39,14 +39,16 @@ elif '.fa' in reads_file or '.fasta' in reads_file:
 reads = []
 read_headers = []
 for i, sequence in enumerate(read_sequences):
-    if i > 1000000: break
+    if i > read_count: break
     reads.append(str(sequence.seq))
     read_headers.append(sequence.id)
 
 reference_chromosomes = SeqIO.parse(open(reference_file), 'fasta')
 reference = []
+reverse_reference = []
 for sequence in reference_chromosomes:
     reference.append(str(sequence.seq))
+    reverse_reference.append(str(sequence.reverse_complement().seq))
 
 seeds = []
 with open(seeds_file, 'rb') as f:
@@ -59,8 +61,6 @@ with open(seeds_file, 'rb') as f:
 
 alignment_results = [{'score': 1000, 'location': -1, 'chr': 'chr0'}] * len(reads)
 
-nunique = 0
-extend_success = 0
 total = 0
 
 with open(client_results, 'rb') as f:
@@ -71,6 +71,8 @@ with open(client_results, 'rb') as f:
         ref_kmer = f.read(16)
         if len(ref_kmer) != 16:
             break
+        if total % 1000000 == 0:
+            print "Extension done for", total, "matches"
         # Check if this is a match
         if ref_kmer != ('0' * 16) and len(ref_kmer) == 16:
             total += 1
@@ -92,10 +94,7 @@ with open(client_results, 'rb') as f:
             end = start + len(corresponding_read)
 
             if is_reverse:
-                aligned_str = reference[chromosome_index][::-1][start:end]
-                mut_seq = MutableSeq(aligned_str)
-                mut_seq.complement()
-                aligned_str = str(mut_seq)
+                aligned_str = reverse_reference[chromosome_index][start:end]
             else:
                 aligned_str = reference[chromosome_index][start:end]
 
@@ -105,22 +104,22 @@ with open(client_results, 'rb') as f:
                                                   'location': start,
                                                   'chr': chromosome_index}
             if not unique:
-                nunique += 1
                 candidates = kmerhash_position_map[str(seed[:10])]
-                for (chromosome_index, in_chromosome_position) in candidates:
+                for (chromosome_index, is_reverse, in_chromosome_position) in candidates:
 
                     start = in_chromosome_position - in_read_position
                     end = start + len(corresponding_read)
 
-                    aligned_str = reference[chromosome_index][start:end]
+                    if is_reverse:
+                        aligned_str = reverse_reference[chromosome_index][start:end]
+                    else:
+                        aligned_str = reference[chromosome_index][start:end]
 
                     distance = editdistance.eval(corresponding_read, aligned_str)
                     if distance <= max_edit_threshold and alignment_results[read_number]['score'] > distance:
                         alignment_results[read_number] = {'score': distance,
                                                           'location': start,
                                                           'chr': chromosome_index}
-            if distance <= max_edit_threshold:
-                extend_success += 1
 
 with open(output, 'w') as g:
     aligned = 0
@@ -138,4 +137,4 @@ with open(output, 'w') as g:
             g.write('-\n')
         g.write('+\n')
 
-print aligned, naligned, nunique
+print aligned, naligned

@@ -33,8 +33,8 @@ class AesCtrCipher:
 
     def _counter_callback(self):
         """
-                this function should be stateful
-                """
+        this function should be stateful
+        """
         self.cnter_cb_called += 1
         return self.secret[self.cnter_cb_called % AES.block_size] * AES.block_size
 
